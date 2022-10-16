@@ -19,12 +19,12 @@ namespace core
 struct m_clock
 {
 public:
-    enum current_read{_hour,_min,_sec};
+    enum current_read{_none,_hour,_min,_sec};
 private:
  int hour;
  int min;
  int sec;
- current_read cur_r{_hour}; // указатель на читаемое значение устанавливается на _hour
+ current_read cur_r{_none}; // указатель на читаемое значение устанавливается на _hour
                             //т.е. если cur_r не равна _hour идет считывание переменной
 
  int*cur_val {&hour};
@@ -43,7 +43,7 @@ public:
 
 private:
 //чтение переменной как понять какой
-  int read_value(char*s);
+  int read_value(const char*s);
 
   void set_value(int val);  // записывает переданное значение , и изменяет флаг cur_r
   int get_value(struct tm*t); // возвращает нужное значение в зависимости от указателя cur_r  т.е. может вернуть значение часов,минут, или секунд

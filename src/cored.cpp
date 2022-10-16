@@ -46,7 +46,11 @@ m_clock::m_clock(int hh,int mm,int ss)
 //    while(s[cnt])
 
 //}
-
+m_clock::m_clock(const char* s)
+{
+    std::string str(s);
+    read_value(str.c_str());
+}
 
 
 std::ostream & operator<<(std::ostream& os,const m_clock& tm)
@@ -65,9 +69,9 @@ std::ostream & operator<<(std::ostream& os,const m_clock& tm)
 
 // если возвращать количество прочитанных символов, строки
 //
-int m_clock::read_value(char *s)
+int m_clock::read_value(const char *s)
 {
- char*ch=s;
+ //char*ch=s;
  int cnt=0;
  /*
 первый символ может быть либо цифрой, тогда читать значение
@@ -162,7 +166,9 @@ cnt--;
 // val=get_value(ltm);
  if(val<0){
    val=get_value(ltm);
-  }
+ std::cout<<"cur value "<<val<<"\n";
+ }
+  std::cout<<"cur value "<<val<<"\n";
  set_value(val)  ;
 
 
@@ -177,31 +183,31 @@ int m_clock::get_value(struct tm*ltm)
 {
 
 
-if(cur_r==_hour)
+if(cur_r==_none)
     return ltm->tm_hour;
-if(cur_r==_min)
+if(cur_r==_hour)
     return ltm->tm_min;
-if(cur_r==_sec)
+if(cur_r==_min)
     return ltm->tm_sec;
 return 0;
 }
 
 void m_clock::set_value(int val)
-{if(cur_r==_sec)
+{if(cur_r==_min)
     {
-
       sec=val;
-     }
-    if(cur_r==_min)
-    {
-
-      min=val;
     cur_r=_sec;
+
     }
-  if(cur_r==_hour)
+    if(cur_r==_hour)
+    {
+      min=val;
+    cur_r=_min;
+    }
+  if(cur_r==_none)
   {
     hour=val;
-    cur_r=_min;
+    cur_r=_hour;
       }
 
 
@@ -213,7 +219,7 @@ void m_clock::end_read()
     {
       set_value(0);
     }
-    cur_r=_hour;
+    cur_r=_none;
 }
 std::istream& operator>>(std::istream &is, m_clock& tm)
 {
