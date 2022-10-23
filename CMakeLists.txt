@@ -17,5 +17,5 @@ file(GLOB CPP1 "${PROJECT_SOURCE_DIR}/src/*.cpp")
 #add_executable(my_deamon my_deamon.cpp ${CPP1})
 #add_executable(run_deamon make_root.cpp ${CPP1})
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build") #устанавливает путь
-add_executable(service serv_deamon.cpp ${CPP1})
-
+add_executable(service serv_deamon.cpp ${CPP1} )
+#add_executable(make path)

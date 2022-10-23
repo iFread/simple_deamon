@@ -2,3 +2,5 @@ build
 service
 /bin/*.out
 .gitignore
+theory.txt
+CMakeLists.txt.user

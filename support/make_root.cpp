@@ -4,7 +4,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include "cored.h"
-
+#include <exception>
 #include <fstream>
 //вспомогательная программа, запускается с правами root
 // осуществляет все действия с демоном:
@@ -17,8 +17,10 @@
 
 int get_uid(const char* path);
 int start_deamon(const char* name); // запуск демона
+bool parent_correct(pid_t ppid);  //проверить корректность родителя
+bool exe_correct();// проверка что процесс запущен корректно
 
-#define _PATH "../bin/sim_deamon"
+const char*_PATH="sim_deamon";
 
 /*
 config(path);
@@ -29,83 +31,92 @@ config(path);
 
 int main(int argc,char* argv[])
 {
-   //смена владельца и прав доступа
-//    uid_t uid;
-//if((uid=get_uid(_PATH))!=0)
-//{ // можно сменить каталог, тогда chown,chmod, должны получать имя бинарного файла
-//   // либо брать имена из CMakeLists.txt
-//    //
-//if(chown(_PATH,0,0)<0) {
-//    std::cerr<<"Ошибка смены владельца, нет прав\n";
-// exit(EXIT_FAILURE);}
-// if(chmod(_PATH,S_IRWXU|S_IRGRP|S_IROTH)<0)
-// {
-//      std::cerr<<"Ошибка chmod.\n";
-//   exit(EXIT_FAILURE);
-// }
 
-////}
+ // 1. проверка родителя :
+     //  - получить ppid
+    // получить путь ./proc/ppid/exe
+    // сравнить с константой parrent_path
+char cwd[256];
 
-//}
-//  else
-//    std::cout<<"program allready started with "<<uid<<" owner\n";
-//  std::cout<<"ppid = "<<getppid()<<"\n";
-//for(int i=1;i<argc;++i){
-    std::string s(argv[1]);
+getcwd(cwd,256);
+std::cout<<"current path :"<<cwd<<"\n";
+ std::string s;
+    try{s =(argv[1]);
   // std::cout<<s<<"\n";}
-
-  if(s=="s"||s=="start")
+}
+    catch(const char* s)
     {
-       start_deamon(_PATH);
+      std::cout<< s<<"\n";
+    }
+  if(s=="s"||s=="start")
+    {std::string path=cwd;
+      path+="/../bin/";
+      path+=_PATH;
+      std::cout<<path<<"\n";
+       start_deamon(path.c_str());
     }
 
     return 0;
 
  }
 
+// установить взаимодействие с родителем
+//  получить нужную информацию,
+// если все хорошо,
+bool exe_correct()
+{
+  bool fl_exe=false;
+
+
+  return fl_exe;
+}
 //проверяет запущен ли демон, если нет запускает
 int start_deamon(const char* name)
 { pid_t pid;
     uid_t uid;
   try
-    {
+    {//std::cout<<"open .pid file\n";
   if((uid=get_uid(name))!=0)
   {
+ // при запуске без sudo нет прав для того чтобы сделать владельцем root
      if(chown(name,0,0)<0)
          throw "ошибка функции chown";
      if(chmod(name,S_IRWXU|S_IRGRP|S_IROTH)<0)
          throw  "ошибка функции chmod";
-
   pid=fork();
   if(pid==0)
   {
     execl(name,NULL);
-    return 0;  //запуск демона
+   exit(EXIT_FAILURE);  //запуск демона
    } // в родителе, создать файл с pid демона
   //int fd;
 
   std::fstream out;
   out.open("/var/run/sim_deamon.pid",std::ios_base::out);
   out<<pid;
-   }
-    else throw "демон уже запущен";
+  out.close();
 
+  }
+    else {
+      throw "демон уже запущен";
+}
      }
-     catch(std::exception &ex)
+     catch(const char* s)//std::exception& ex)//std::exception &ex)
     {
-      std::cout<<ex.what()<<"\n";
+      std::cout<<"Exception: "<<s<<"\n";
     }
     return  pid;
    }  // pid
 
 int get_uid(const char*path)
 {
+
    struct stat st;
     if((stat(path,&st))<0){ // это надо писать в лог
       std::cerr<<"Ошибка вызова stat, программа остановлена\n";
 exit(EXIT_FAILURE);
     }
-    std::cout<<"uid "<<path<<" "<<st.st_uid<<"\n";
+  //  std::cout<<"uid "<<path<<" "<<st.st_uid<<"\n";
     return st.st_uid;
     }
 

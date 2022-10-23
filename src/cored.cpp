@@ -8,6 +8,110 @@
 namespace  core
 {
 
+ const char* command[]={"start","stop","add","remove","help"};
+//  список команд доступных для управления демоном
+ const char ch_key[]="rsadh";// символьные ключи
+
+
+
+ command_list::command_list(int c,char*s[])
+ {
+     int i=0;
+     while (i<c)
+     {
+       int cnt=0;
+while(*(s[i]+cnt)!='\0'){
+   Token t= read_token(s[i],cnt);
+   if(t.isCorrect())
+    std::cout<<t.data()<<"\n";
+         }
+ i++;
+     }
+ }
+ bool Token::isCorrect() const
+ {
+   if(tp==Token::type::none)
+       return false;
+   if(!key&&value.empty())
+       return false;
+   return true;
+ }
+Token read_token(const char*s,int &pos)
+{
+
+
+const char*ch=s+pos;
+/*
+Если первый символ '-'
+   проверить следуюший символ
+     Если следующий символ '-' поиск ключа в строке
+     Иначе поиск в массиве символов
+Иначе считать аргумент или опцию
+
+
+при получении команды pos не равен нулю, никогда
+
+*/
+
+std::string str;
+while (*ch!='\0') {
+
+  //  std::cout<<*ch;
+//-k,--key
+
+if(std::isalpha(*ch))
+{
+   if(((ch-s) == 2&&pos==0) && (ch-s)<strlen(s)-1) // поиск строковой команды
+   {
+     str=(ch);
+     pos+=(ch-s)+str.size();
+ //  std::cout<<"string key "<<str;
+     //break;
+     return {Token::type::_cmd,str.c_str()};
+   }
+     if((ch-s)==1)
+   {
+     pos+=2;
+         return {Token::type::_cmd,*ch};
+
+     }
+     if(pos>0)
+    {   pos++;
+         return {Token::type::_cmd,*ch};
+
+
+     }
+  if(pos==0)
+  {
+  str=(ch);
+  pos+=str.size();
+      return {Token::type::_value,ch};
+
+  }
+
+
+}
+//if(std::isdigit(*ch)||*ch=='/')
+if((std::isdigit(*ch)||*ch=='+'||*ch=='/'||*ch==':')&&pos==0)
+{ // если ввод начинался с - и встретили цифру,
+    // смотрим на корректность ввода m_clock
+   if(*s=='-')
+        { ch--;
+   m_clock clck(ch);
+   std::cout<<clck<<"\n";
+   }
+          str=(ch);
+    pos+=str.size();
+    return Token(Token::type::_time,ch);
+}
+ch++;
+}
+return Token(Token::type::none,"");
+}
+
+
+
+
 m_clock::m_clock():hour(0),min(0),sec(0)
 {}
 
@@ -118,6 +222,10 @@ int m_clock::read_value(const char *s)
             if(std::isdigit(*(s+cnt)))
             {
                diff=diff*10+((*(s+cnt))-0x30);
+            } else
+             {
+             std::cerr<<"unknown value\n";
+             exit(-1);
             }
          cnt++;
         }
@@ -166,9 +274,9 @@ cnt--;
 // val=get_value(ltm);
  if(val<0){
    val=get_value(ltm);
- std::cout<<"cur value "<<val<<"\n";
+// std::cout<<"cur value "<<val<<"\n";
  }
-  std::cout<<"cur value "<<val<<"\n";
+ // std::cout<<"cur value "<<val<<"\n";
  set_value(val)  ;
 
 
@@ -183,31 +291,31 @@ int m_clock::get_value(struct tm*ltm)
 {
 
 
-if(cur_r==_none)
-    return ltm->tm_hour;
 if(cur_r==_hour)
-    return ltm->tm_min;
+    return ltm->tm_hour;
 if(cur_r==_min)
+    return ltm->tm_min;
+if(cur_r==_sec)
     return ltm->tm_sec;
 return 0;
 }
 
 void m_clock::set_value(int val)
-{if(cur_r==_min)
+{if(cur_r==_sec)
     {
       sec=val;
-    cur_r=_sec;
+    cur_r=_none;
 
     }
-    if(cur_r==_hour)
+    if(cur_r==_min)
     {
       min=val;
-    cur_r=_min;
+    cur_r=_sec;
     }
-  if(cur_r==_none)
+  if(cur_r==_hour)
   {
     hour=val;
-    cur_r=_hour;
+    cur_r=_min;
       }
 
 
@@ -215,11 +323,11 @@ void m_clock::set_value(int val)
 
 void m_clock::end_read()
 {
-    while(cur_r!=_sec)
+    while(cur_r!=_none)
     {
       set_value(0);
     }
-    cur_r=_none;
+    cur_r=_hour;
 }
 std::istream& operator>>(std::istream &is, m_clock& tm)
 {
@@ -256,6 +364,53 @@ tm.read_value(buf);
 // tm=m_clock(hh,mm,ss);
  return is;
 }
+// сравнение времени
 
+bool m_clock::operator<(const time_t &t) const
+{ long cur=hour*60*60+min*60+sec;
+ // получаем значение секунд текущего времени
+    tm *ltm=localtime(&t);
+ long _t=ltm->tm_hour*60*60+ltm->tm_min*60+ltm->tm_sec;
+
+ return cur<_t ;
+  }
+
+bool m_clock::operator>(const time_t &t) const
+{ long cur=hour*60*60+min*60+sec;
+   tm*ltm=localtime(&t);
+   long _t=ltm->tm_hour*60*60+ltm->tm_min*60+ltm->tm_sec;
+    return (cur>_t);
+ }
+
+bool m_clock::operator==(const time_t &t) const
+{
+ long cur=hour*60*60+min*60+sec;
+tm*ltm=localtime(&t);
+ long _t=ltm->tm_hour*60*60+ltm->tm_min*60+ltm->tm_sec;
+
+ return cur==_t;
+}
+
+
+bool m_clock:: operator<(const m_clock &m)const
+{
+  long sec_cur=hour*60*60+min*60+sec;
+long sec_m=m.hour*60*60+m.min*60+m.sec;
+return sec_cur<sec_m;
+}
+bool m_clock::operator>(const m_clock &m) const
+{
+    long sec_cur=hour*60*60+min*60+sec;
+  long sec_m=m.hour*60*60+m.min*60+m.sec;
+  return sec_cur>sec_m;
+
+}
+
+bool m_clock::operator==(const m_clock &m) const
+{
+    long sec_cur=hour*60*60+min*60+sec;
+  long sec_m=m.hour*60*60+m.min*60+m.sec;
+  return sec_cur==sec_m;
+}
 
 }
